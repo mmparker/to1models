@@ -2,12 +2,33 @@
 
 
 
+
+<head>
+
+<style type = "text/css">
+
+p {
+  max-width:50%;
+  margin-left:auto;
+  margin-right:auto;
+}
+
+</style>
+
+</head>
+
+
+
+
 ```{r initialize, echo=FALSE,results='hide',message=FALSE,warning=FALSE}
 # Initialize!
 
 # Stop R from interpreting strings as factors. 
 # When you want factors, you'll know it.
 options(stringsAsFactors = FALSE)
+
+# Turn off scientific notation
+options(scipen=999)
 
 # Load up the requisite packages
 library(knitr)     # It's a knitr document, after all...
@@ -132,8 +153,13 @@ total_enrolled <- length(enrolled)
 ```{r estimate_rates}
 
 # Compile all participants' test results. Limit to successfully enrolled.
+# Exclude those who are missing results
 results <- subset(compile_results(to1clean),
-                  StudyID %in% enrolled)
+                  StudyID %in% enrolled &
+                  !is.na(tst) &
+                  !is.na(qft) &
+                  !is.na(tspot)
+)
 
 
 # Flag anyone who developed active TB
