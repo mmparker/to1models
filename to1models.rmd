@@ -179,19 +179,25 @@ results.m <- melt(results,
                   measure.vars = c("tst", "qft", "tspot")
 )
 
+
+# Tidy up the test names
+levels(results.m$variable) <- c("TST", "QFT", "TSPOT")
+
 results.agg <- ddply(results.m,
                      .var = c("variable", "value"),
                      .fun = summarise,
 
     py_fu = sum(as.numeric(years_fu)),
     n_tb = sum(GotTB),
-    rate = (n_tb / py_fu) * 1e5
+    rate = (n_tb / py_fu) * 1e3
 
 )
 
+# A bit of experimental code for testing what happens when there's a case
+# results.agg[4, "n_tb"] <- 1
 
 # Set a prior for the estimates
-prior_prop <- 300 / 1e5
+prior_prop <- 2.5 / 1e3
 prior_n <- 500
 beta_param1 <- prior_prop * prior_n
 beta_param2 <- (1 - prior_prop) * prior_n
@@ -210,11 +216,11 @@ rate_estimates <- ddply(results.agg,
                                    type = "highest")
       )
 
-      data.frame(prop = estimate$mean,
+      data.frame(n_cases = sum(x$n_tb),
                  py_fu = x$py_fu,
-                 rate = estimate$mean * 1e5,
-                 lower = estimate$lower * 1e5,
-                 upper = estimate$upper * 1e5)
+                 rate = estimate$mean * 1e3,
+                 lower = estimate$lower * 1e3,
+                 upper = estimate$upper * 1e3)
 
     }
 )
@@ -231,15 +237,35 @@ cat("Total Person-Years of Follow-Up: ",
     sum(results$years_fu),
     "<br>")
 
-cat("Rate per 100k Person-Years: ", 
-    sum(results$GotTB) / sum(results$years_fu) * 1e5,
+cat("A Priori Estimated Rate per 1000 Person-Years: ", 
+    prior_prop * 1e3,
+    "<br>")
+
+cat("Rate per 1000 Person-Years: ", 
+    sum(results$GotTB) / sum(results$years_fu) * 1e3,
     "\n")
 
-dfprint(rate_estimates)
+
+# Prettier names for printing
+names(rate_estimates) <- c("Test", "Result", "N Cases",
+                           "PY FU", "Rate per 1000 PY*",
+                           "Lower Bound", "Upper Bound")
+
+dfprint(rate_estimates, printdigits = 2)
 
 
 ```
 
+\*These are Bayesian estimates with **strongly** informative prior
+information about the plausible case rates.
+This means that even when zero cases have been recorded, the estimated rates
+can still be above zero - reflecting our knowledge that the true case rate
+for these participants cannot be zero.
+
+The same prior is used for all participants, regardless of test results; 
+this is oversimplified but, I hope, good enough for this preliminary look.
+The prior is a beta distribution with parameters alpha = 
+`r paste(beta_param1)` and beta = `r paste(beta_param2)`.
 
 
 ## Which Test Is Most Strongly Associated with Triple-Positivity?
